@@ -2,8 +2,60 @@ import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
 import styles from '../styles/Home.module.css'
+import {
+  createRxDatabase,
+  addRxPlugin,
+  RxDatabase,
+  /* ... */
+} from 'rxdb/plugins/core';
+import { getRxStoragePouch, addPouchPlugin } from 'rxdb/plugins/pouchdb';
+import React from 'react';
+import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+addRxPlugin(RxDBDevModePlugin);
+addPouchPlugin(require('pouchdb-adapter-idb'));
 
+async function getDb () {
+const dbPouch = await createRxDatabase({
+  name: 'mydatabase',
+  storage: getRxStoragePouch('idb')
+});
+return dbPouch
+}
+
+const heroSchema = {
+    title: 'hero schema',
+    description: 'describes a simple hero',
+    version: 0,
+    primaryKey: 'name',
+    type: 'object',
+    properties: {
+        name: {
+            type: 'string'
+        },
+        color: {
+            type: 'string'
+        }
+    },
+    required: [
+        'name',
+        'color'
+    ]
+};
 const Home: NextPage = () => {
+  const [db, setDb] = React.useState<RxDatabase>();
+  React.useEffect(() => {
+    (async() => {
+      const db = await getDb();
+    await db.addCollections({
+        heroes: {
+            schema: heroSchema,
+        }
+    });
+    await db.heroes.insert({'name': 'Batman', 'color': 'blue'});
+    console.log(await db.heroes.find().exec());
+      setDb(db);
+      })()
+      }, []);
   return (
     <div className={styles.container}>
       <Head>
